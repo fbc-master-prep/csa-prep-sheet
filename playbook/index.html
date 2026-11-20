@@ -1101,7 +1101,8 @@ function renderMain(){
       ${dlHTML()}
       <div class="plan-foot">
         <a class="textlink" href="#full-list">See every suggestion and option on one page</a>
-        <button type="button" class="reset" id="plan-reset" hidden>${J?"Clear my choices":"Start a new job"}</button>
+        <button type="button" class="pill" id="clear-suggestions" disabled>Clear selected suggestions</button>
+        <button type="button" class="reset" id="plan-reset" hidden>Start a new job</button>
       </div>
     </section>
   </div>`;
@@ -1229,7 +1230,8 @@ function drawPlan(){
   $("plan-count").textContent=p.firm.length+" of "+total+" questions have a date";
   $("plan-copy").hidden=!any;
   $("plan-ics").hidden=!p.firm.length||hasClaude;   /* a calendar file cannot be saved from inside Claude */
-  $("plan-reset").hidden=J?!any:isBlank();
+  $("clear-suggestions").disabled=!any;
+  $("plan-reset").hidden=!!J||isBlank();
   if(!any){
     body.innerHTML=`<p class="hint">Nothing chosen yet. Choose a suggestion and an option under any question, and its date shows up here.</p>`;
     return;
@@ -1477,15 +1479,14 @@ function downloadPdf(btn){
 }
 let resetUntil=0;
 function handleReset(btn){
-  const label=J?"Clear my choices":"Start a new job";
+  const label="Start a new job";
   if(Date.now()<resetUntil){
     resetUntil=0;
-    if(J){state.sel={};save();drawAll();}
-    else{state=fresh();save();picked=[];upMsg=null;buildQS();renderMain();window.scrollTo(0,0);}
+    state=fresh();save();picked=[];upMsg=null;buildQS();renderMain();window.scrollTo(0,0);
     return;
   }
   resetUntil=Date.now()+6000;
-  btn.textContent=J?"Clear every choice on this page? Click again":"Clear this job and start a new one? Click again";
+  btn.textContent="Clear this job and start a new one? Click again";
   setTimeout(()=>{if(resetUntil&&Date.now()>=resetUntil){resetUntil=0;if(btn.isConnected)btn.textContent=label;}},6100);
 }
 
@@ -2076,6 +2077,14 @@ document.addEventListener("click",e=>{
   if(pc){copyText(planText(),pc,$("plan-body"));return;}
   const pi=t.closest("#plan-ics");
   if(pi){downloadIcs(pi);return;}
+  if(t.closest("#clear-suggestions")){
+    resetUntil=0;
+    $("plan-reset").textContent="Start a new job";
+    state.sel={};
+    save();
+    drawAll();
+    return;
+  }
   const rs=t.closest("#plan-reset");
   if(rs){handleReset(rs);return;}
   if(t.closest("#print-btn")){try{window.print();}catch(err){}}
